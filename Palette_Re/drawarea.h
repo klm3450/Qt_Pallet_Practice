@@ -18,7 +18,7 @@ public:
 protected:
     void mousePressEvent(QMouseEvent *event) override; // 마우스 클릭 시 이벤트
     void mouseMoveEvent(QMouseEvent *event) override; // 마우스 이동 시 이벤트
-    void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override; // 마우스 뗄 시 이벤트
     void paintEvent(QPaintEvent *event) override;
 
 private:
@@ -29,7 +29,8 @@ private:
     QPushButton *allclear;
     //-- 버튼 모음 --//
 
-    QImage image;
+    QImage image; //저장되는 이미지
+    QImage *image_tmp; //계속해서 변화하는 이미지
     QPoint recent_point;
     //-- 이미지 & 마우스포인터 최근 위치 --//
 
@@ -55,7 +56,7 @@ public:
     Q_ENUM(mode)
 
     mode draw_mode = mode::pen_mode;
-    //-- 그림 그리는 모드에 대한 부분 --//
+    //-- 그림 그리는 모드 enum으로 지정 --//
 
 
 protected slots:
