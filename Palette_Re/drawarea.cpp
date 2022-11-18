@@ -12,12 +12,12 @@
 QImage *image_tmp;
 Drawarea::Drawarea(QWidget *parent): QWidget(parent)
 {
-    image = new QImage(600,600,QImage::Format_RGB32);
-    image->fill(Qt::white);
+    image = QImage(600,600,QImage::Format_RGB32);
+    image.fill(Qt::white);
     //-- <QPainter::begin: Paint device returned engine == 0, type: 3 해결> 이미지가 안그려져서 DrawArea 생성 시 아예 같이 생성--//
 
     image_tmp = new QImage(600,600,QImage::Format_RGB32);
-    image_tmp -> fill(Qt::transparent);
+    image_tmp -> fill(Qt::white);
 
     pen = new QPushButton("Pen", this);
     line = new QPushButton("Line", this);
@@ -83,10 +83,11 @@ void Drawarea::Cricle_btn_clicked(){
 }
 
 void Drawarea::allclear_btn_clicked(){
-    if(image->isNull()){}
+    if(image.isNull()){}
     else{
-       QPainter painter(image);
+       QPainter painter(&image);
        painter.eraseRect(0,0,600,600);
+       *image_tmp = image.copy();
        update();
         }
     }
@@ -94,7 +95,6 @@ void Drawarea::allclear_btn_clicked(){
 void Drawarea::mousePressEvent(QMouseEvent *mouse_event){
     if(mouse_event->button() == Qt::LeftButton){
         recent_point = mouse_event->pos();
-       *image_tmp = image->copy(0,0,600,600);
         scribbling = true;
     }
 }
@@ -103,13 +103,16 @@ void Drawarea::mouseMoveEvent(QMouseEvent *mouse_event){
 
     int rad = (myPenWidth / 2) + 2;//왜 이 숫자?
     if(mouse_event->buttons() == Qt::LeftButton && scribbling){
+        *image_tmp = image.copy();
 
         QPoint endpoint = mouse_event->pos();
 
         if(draw_mode == mode::pen_mode){
-            QPainter painter(image); //기존 이미지에 그림
+            QPainter painter(&image); //기존 이미지에 그림
+
             painter.setPen(QPen(myPenColor, myPenWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
             painter.drawLine(recent_point,endpoint);//메모리 내에서 이뤄지는 과정
+            *image_tmp = image.copy();
             update(QRect(recent_point, endpoint).normalized() //QRect(QPoint &topLeft, QPoint &bottomRight) 정규화된(음수->양수)직사각형
                                          .adjusted(-rad, -rad, +rad, +rad)); //사각형의 기존 좌표의 dx1, dy1, dx2, dy2가 추가된 새 사각형 반환 후 업데이트
             recent_point = endpoint;
@@ -117,7 +120,6 @@ void Drawarea::mouseMoveEvent(QMouseEvent *mouse_event){
         else if(draw_mode == mode::line_mode){
 
             QPainter painter_tmp(image_tmp); //temp 이미지에 그림
-            painter_tmp.eraseRect(0,0,600,600);
             painter_tmp.setPen(QPen(myPenColor, myPenWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
             painter_tmp.drawLine(recent_point,endpoint);
             repaint();
@@ -128,7 +130,6 @@ void Drawarea::mouseMoveEvent(QMouseEvent *mouse_event){
         else if(draw_mode == mode::rect_mode){
 
            QPainter painter_tmp(image_tmp); //temp 이미지에 그림
-           painter_tmp.eraseRect(0,0,600,600);
            painter_tmp.setPen(QPen(myPenColor, myPenWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
            painter_tmp.drawRect(recent_point.x(),recent_point.y(),endpoint.x()-recent_point.x(),endpoint.y()-recent_point.y());
            repaint();
@@ -141,7 +142,6 @@ void Drawarea::mouseMoveEvent(QMouseEvent *mouse_event){
         else if(draw_mode == mode::circle_mode){
 
            QPainter painter_tmp(image_tmp); //temp 이미지에 그림
-           painter_tmp.eraseRect(0,0,600,600);
            painter_tmp.setPen(QPen(myPenColor, myPenWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
            painter_tmp.drawEllipse(recent_point,(endpoint.x()-recent_point.x()),(endpoint.y()-recent_point.y()));
            repaint();
@@ -158,20 +158,30 @@ void Drawarea::mouseMoveEvent(QMouseEvent *mouse_event){
 void Drawarea::paintEvent(QPaintEvent *event){
     QPainter painter(this);
     QRect dirtyRect = event->rect();
-    painter.drawImage(dirtyRect,*image,dirtyRect);
+   // painter.drawImage(dirtyRect,image,dirtyRect);
+    painter.drawImage(dirtyRect,*image_tmp,dirtyRect);
 }
 
 
 void Drawarea::mouseReleaseEvent(QMouseEvent *mouse_event){
 
-    QPainter painter(image);
+    QPainter painter(&image);
     painter.setPen(QPen(myPenColor, myPenWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     QPoint endpoint = mouse_event->pos();
     int rad = (myPenWidth / 2) + 2; //왜 이 숫자?
 
   if(mouse_event->button() == Qt::LeftButton && scribbling){
 
-      if(draw_mode == mode::line_mode){
+      if(draw_mode == mode::pen_mode){
+          QPainter painter(&image); //기존 이미지에 그림
+
+          painter.setPen(QPen(myPenColor, myPenWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+          painter.drawLine(recent_point,endpoint);//메모리 내에서 이뤄지는 과정
+          update(QRect(recent_point, endpoint).normalized() //QRect(QPoint &topLeft, QPoint &bottomRight) 정규화된(음수->양수)직사각형
+                                       .adjusted(-rad, -rad, +rad, +rad)); //사각형의 기존 좌표의 dx1, dy1, dx2, dy2가 추가된 새 사각형 반환 후 업데이트
+          recent_point = endpoint;
+      }
+      else if(draw_mode == mode::line_mode){
           painter.drawLine(recent_point,endpoint);
           update(QRect(recent_point, endpoint).normalized() //QRect(QPoint &topLeft, QPoint &bottomRight) 정규화된(음수->양수)직사각형
                                        .adjusted(-rad, -rad, +rad, +rad)); //사각형의 기존 좌표의 dx1, dy1, dx2, dy2가 추가된 새 사각형 반환 후 업데이트
@@ -192,9 +202,10 @@ void Drawarea::mouseReleaseEvent(QMouseEvent *mouse_event){
   }
      if(image_tmp->isNull()){}
       else{
-          QPainter painter(image); //기존 이미지에 그림
+          QPainter painter(&image); //기존 이미지에 그림
           painter.setPen(QPen(myPenColor, myPenWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
           painter.drawImage(QPoint(0,0),*image_tmp);
+          repaint();
       }
     scribbling = false;
     }

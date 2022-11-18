@@ -29,7 +29,7 @@ private:
     QPushButton *allclear;
     //-- 버튼 모음 --//
 
-    QImage *image;
+    QImage image;
     QPoint recent_point;
     //-- 이미지 & 마우스포인터 최근 위치 --//
 
